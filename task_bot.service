@@ -1,0 +1,14 @@
+[Unit]
+Description=Task bot
+
+[Service]
+User=root
+WorkingDirectory=/root/task_bot
+ExecStart=/root/task_bot/venv/bin/python main.py
+# optional items below
+Restart=always
+RestartSec=3
+# replace /home/user/.virtualenv/bin/python with your virtualenv and main.py with your script
+
+[Install]
+WantedBy=multi-user.target

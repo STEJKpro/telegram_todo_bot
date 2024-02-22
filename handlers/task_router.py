@@ -82,7 +82,9 @@ async def command_task(message: Message) -> None:
                              f'<b>Описание задачи:</b> {task.discription}\n'
                              f'<b>Приоритет:</b> {task.priority}\n'
                              f'<b>Дедлайн:</b> {task.deadline.strftime("%d.%m.%Y")}\n'
-                             f'<b>Статус задачи:</b> {task.status}',
+                             f'<b>Статус задачи:</b> {task.status}\n'
+                             f'<b>Исполнитель:</b> {session.query(User).filter(User.chat_id == task.executor_id).one().name}'
+                             ,
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[delete_button]]))
 
 
@@ -103,7 +105,8 @@ async def todo_list(message: Message,) -> None:
                              f'<b>Описание задачи:</b> {task.discription}\n'
                              f'<b>Приоритет:</b> {task.priority}\n'
                              f'<b>Дедлайн:</b> {task.deadline.strftime("%d.%m.%Y")}\n'
-                             f'<b>Статус задачи:</b> {task.status}',
+                             f'<b>Статус задачи:</b> {task.status}\n'
+                             f'<b>Автор:</b> {session.query(User).filter(User.chat_id == task.author_id).one().name}',
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[done_button]]),)
         
         
@@ -225,14 +228,25 @@ async def process_priority(message: Message, state: FSMContext, bot: Bot) -> Non
 
     session.add(task)
     session.commit()
-    await bot.send_message(chat_id=executor_chat_id, text= f"Вам пришла задача\nПриоритет: {data['priority']}\nДедлайн: {data['deadline']}\nЗадача: {data['discription']}")
+    await bot.send_message(
+        chat_id=executor_chat_id, 
+        text= 
+            f"<b>Вам пришла задача</b>\n"
+            f"<b>Приоритет</b>: {data['priority']}\n"
+            f"<b>Дедлайн</b>: {data['deadline']}\n"
+            f"<b>Задача:</b> {data['discription']}\n"
+            f'<b>Автор:</b> {session.query(User).filter(User.chat_id == task.author_id).one().name}',
+    )
     if data.get("file"):
         if data["file"].get("media_group"):
             await bot.send_media_group(chat_id=data["executor"], media=data["file"]["media_group"])
         else:
             await bot.send_document(chat_id=data["executor"], document=data["file"]["document_id"])
     await message.answer(
-        f"Красота, задача создана и отправлена исполнителю\nПриоритет: {data['priority']}\nДедлайн: {data['deadline']}\nЗадача: {data['discription']}",
+        f"Красота, задача создана и отправлена исполнителю\n"
+            f"Приоритет: {data['priority']}\n"
+            f"Дедлайн: {data['deadline']}\n"
+            f"Задача: {data['discription']}",
         reply_markup=ReplyKeyboardRemove(),
     )
     
@@ -244,8 +258,25 @@ async def delete_task_button_press(callback: CallbackQuery,  bot: Bot):
     task = session.query(Task).get(task_id)
     session.delete(task)
     session.commit()
-    await bot.send_message(chat_id=task.executor_id, text=f"Удалена задача: \n{task.discription}")
-    await callback.message.edit_text(f'Задача [{task_id}] удалена')
+    await bot.send_message(
+        chat_id=task.executor_id, 
+        text=   f'<b>❌ ЗАДАЧА УДАЛЕНА!</b> {task.id}\n'
+                f'<b>ID:</b> {task.id}\n'
+                f'<b>Описание задачи:</b> {task.discription}\n'
+                f'<b>Приоритет:</b> {task.priority}\n'
+                f'<b>Дедлайн:</b> {task.deadline.strftime("%d.%m.%Y")}\n'
+                f'<b>Статус задачи:</b> {task.status}\n'
+                f'<b>Автор:</b> {session.query(User).filter(User.chat_id == task.author_id).one().name}'
+    )
+    await callback.message.edit_text(
+         f'<b>❌ ЗАДАЧА УДАЛЕНА!</b> {task.id}\n'
+                f'<b>ID:</b> {task.id}\n'
+                f'<b>Описание задачи:</b> {task.discription}\n'
+                f'<b>Приоритет:</b> {task.priority}\n'
+                f'<b>Дедлайн:</b> {task.deadline.strftime("%d.%m.%Y")}\n'
+                f'<b>Статус задачи:</b> {task.status}\n'
+                f'<b>Исполнитель:</b> {session.query(User).filter(User.chat_id == task.executor_id).one().name}'
+    )
     
     
 @task_router.callback_query(F.data.startswith('done_task'))

@@ -92,7 +92,7 @@ async def command_task(message: Message) -> None:
 #Вывод список задач на исполнении
 @task_router.message(Command("todo"))
 @task_router.message(F.text.casefold() == "todo")
-async def todo_list(message: Message,) -> None:
+async def todo_list(message: Message, bot: Bot) -> None:
     tasks = list(session.query(Task).filter(Task.executor_id == message.from_user.id, Task.status != 'Выполнено'))
     if not tasks:
         return await message.answer(
@@ -108,13 +108,17 @@ async def todo_list(message: Message,) -> None:
                              f'<b>Статус задачи:</b> {task.status}\n'
                              f'<b>Автор:</b> {session.query(User).filter(User.chat_id == task.author_id).one().name}',
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[done_button]]),)
-        
+        if task.file:
+            if task.file.get("media_group"):
+                await bot.send_media_group(chat_id=message.from_user.id, media=task.file.get("media_group"))
+            else:
+                await bot.send_document(chat_id=message.from_user.id, document=task.file.get("document_id"))
         
 #Сохраняем исполнителя и запрашиваем описание
 @task_router.message(Form.executor)
 # @task_router.message()
 async def process_executor(message: Message, state: FSMContext) -> None:
-    await state.update_data(executor=message.text.split('.')[0])
+    await state.update_data(executor=session.query(User).filter(User.id == message.text.split('.')[0]).one().chat_id)
     await state.set_state(Form.discription)
     await message.answer(
         "Напиши что надо сделать)",
@@ -215,7 +219,7 @@ async def process_file(message: Message, album: Album, state: FSMContext,) -> No
 async def process_priority(message: Message, state: FSMContext, bot: Bot) -> None:
     await state.update_data(priority=message.text)
     data = await state.get_data()
-    executor_chat_id = session.query(User).filter_by(id=data["executor"]).one_or_none().chat_id
+    executor_chat_id = data["executor"]
     await state.clear()
     task = Task(
         discription = data["discription"],
@@ -224,6 +228,7 @@ async def process_priority(message: Message, state: FSMContext, bot: Bot) -> Non
         executor_id = executor_chat_id,
         deadline=  data["deadline"],
         status = "Новая задача",
+        file = data['file'] if data.get("file") else None
         )
 
     session.add(task)

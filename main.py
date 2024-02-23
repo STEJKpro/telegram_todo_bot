@@ -38,6 +38,9 @@ from os import environ
 from dotenv import load_dotenv
 
 
+logging.basicConfig()
+logging.getLogger('sqlalchemy').setLevel(logging.ERROR)
+
 load_dotenv()
 TOKEN = getenv("BOT_TOKEN")
 

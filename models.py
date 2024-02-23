@@ -1,7 +1,7 @@
 from sqlalchemy import (
     Identity, create_engine, MetaData, Table, Integer, String,
     Column, DateTime, ForeignKey, Numeric,
-    UniqueConstraint
+    UniqueConstraint, JSON
 )
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
@@ -31,3 +31,4 @@ class Task(Base):
     priority = Column(String(25), nullable=False)
     deadline = Column(DateTime)
     status = Column(String(200), nullable=False)
+    file = Column(JSON, nullable=True)
